@@ -1,0 +1,378 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>HOD Portal</title>
+  <style>
+    :root{
+      --bg:#f6f7fb;
+      --card:#ffffff;
+      --text:#111827;
+      --muted:#6b7280;
+      --border:#e5e7eb;
+      --primary:#111827;
+      --primaryText:#ffffff;
+      --danger:#ef4444;
+      --ok:#10b981;
+      --shadow: 0 10px 30px rgba(0,0,0,.08);
+    }
+    body{
+      margin:0;
+      font-family: system-ui, -apple-system, Segoe UI, Roboto, Arial;
+      background:var(--bg);
+      color:var(--text);
+    }
+    header{
+      background:var(--card);
+      border-bottom:1px solid var(--border);
+      padding:16px 18px;
+      display:flex;
+      align-items:center;
+      justify-content:space-between;
+    }
+    .brand{
+      font-size:22px;
+      font-weight:800;
+      font-style:italic;
+      letter-spacing:.2px;
+    }
+    .wrap{ max-width:1100px; margin:20px auto; padding:0 16px; }
+    .grid{ display:grid; grid-template-columns: 1fr; gap:16px; }
+    .card{
+      background:var(--card);
+      border:1px solid var(--border);
+      border-radius:14px;
+      box-shadow:var(--shadow);
+      padding:16px;
+    }
+    .card h2{ margin:0 0 10px; font-size:16px; }
+    .row{ display:flex; gap:10px; flex-wrap:wrap; align-items:center; margin:8px 0; }
+    input, button{
+      padding:10px 12px;
+      border-radius:10px;
+      border:1px solid var(--border);
+      font-size:14px;
+    }
+    button{
+      border:none;
+      cursor:pointer;
+      background:var(--primary);
+      color:var(--primaryText);
+      font-weight:700;
+    }
+    button.secondary{
+      background:#ffffff;
+      color:var(--text);
+      border:1px solid var(--border);
+    }
+    button.approve{ background:var(--ok); }
+    button.reject{ background:var(--danger); }
+    table{
+      width:100%;
+      border-collapse:collapse;
+      margin-top:10px;
+      overflow:hidden;
+      border-radius:12px;
+      border:1px solid var(--border);
+    }
+    th, td{
+      text-align:left;
+      padding:10px 10px;
+      border-bottom:1px solid var(--border);
+      font-size:14px;
+      vertical-align:top;
+    }
+    th{ background:#f3f4f6; }
+    .muted{ color:var(--muted); font-size:13px; }
+    .msg{
+      margin-top:10px;
+      padding:10px 12px;
+      border-radius:10px;
+      border:1px solid var(--border);
+      background:#fff;
+      font-size:14px;
+    }
+    .msg.ok{ border-color: #86efac; background:#ecfdf5; }
+    .msg.err{ border-color: #fecaca; background:#fef2f2; }
+    .actions{ display:flex; gap:8px; }
+  </style>
+</head>
+<body>
+  <header>
+    <div class="brand">Early Move Out</div>
+    <div class="row">
+      <button class="secondary" onclick="location.href='/index.html'">Home</button>
+      <button class="secondary" onclick="logout()">Logout</button>
+    </div>
+  </header>
+
+  <div class="wrap">
+    <div class="grid">
+
+      <!-- PENDING -->
+      <div class="card">
+        <div class="row" style="justify-content:space-between;">
+          <h2>Pending Requests</h2>
+          <button onclick="loadPending()">Refresh</button>
+        </div>
+        <div class="muted">Approve / Reject requests here.</div>
+        <div id="pendingMsg"></div>
+        <div style="overflow:auto;">
+          <table>
+            <thead>
+              <tr>
+                <th>ID</th>
+                <th>Faculty</th>
+                <th>Faculty ID</th>
+                <th>Date</th>
+                <th>Time</th>
+                <th>Reason</th>
+                <th>Status</th>
+                <th>Action</th>
+              </tr>
+            </thead>
+            <tbody id="pendingBody"></tbody>
+          </table>
+        </div>
+      </div>
+
+      <!-- FILTER BY DATE -->
+      <div class="card">
+        <h2>Approved / Rejected by Date</h2>
+        <div class="row">
+          <label class="muted">Pick a date:</label>
+          <input type="date" id="filterDate"/>
+          <button onclick="loadApproved()">Load Approved</button>
+          <button onclick="loadRejected()">Load Rejected</button>
+        </div>
+
+        <div id="listMsg"></div>
+
+        <h3 style="margin:14px 0 6px;">Approved List</h3>
+        <div style="overflow:auto;">
+          <table>
+            <thead>
+              <tr>
+                <th>ID</th>
+                <th>Faculty</th>
+                <th>Faculty ID</th>
+                <th>Request Date</th>
+                <th>Request Time</th>
+                <th>Decision Date</th>
+                <th>Decision Time</th>
+              </tr>
+            </thead>
+            <tbody id="approvedBody"></tbody>
+          </table>
+        </div>
+
+        <h3 style="margin:14px 0 6px;">Rejected List</h3>
+        <div style="overflow:auto;">
+          <table>
+            <thead>
+              <tr>
+                <th>ID</th>
+                <th>Faculty</th>
+                <th>Faculty ID</th>
+                <th>Request Date</th>
+                <th>Request Time</th>
+                <th>Decision Date</th>
+                <th>Decision Time</th>
+              </tr>
+            </thead>
+            <tbody id="rejectedBody"></tbody>
+          </table>
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+<script>
+  function showMsg(elId, text, ok=true){
+    const el = document.getElementById(elId);
+    if(!text){ el.innerHTML = ""; return; }
+    el.innerHTML = `<div class="msg ${ok ? "ok":"err"}">${text}</div>`;
+  }
+
+  function fmtDateISO(iso){ // "2026-02-18" -> "18-02-2026"
+    if(!iso) return "-";
+    const [y,m,d] = iso.split("-");
+    return `${d}-${m}-${y}`;
+  }
+
+  function fmtTime(t){ // "12:30:22.123456" -> "12:30:22"
+    if(!t) return "-";
+    return t.split(".")[0];
+  }
+
+  function fmtDateTime(dt){ // "2026-02-18T12:30:22.123456" -> {date,time}
+    if(!dt) return {date:"-", time:"-"};
+    const [datePart, timePart] = dt.split("T");
+    return { date: fmtDateISO(datePart), time: fmtTime(timePart) };
+  }
+
+  async function api(url, options={}){
+    // IMPORTANT: send session cookie
+    const res = await fetch(url, {
+      credentials: "include",
+      headers: { "Content-Type":"application/json", ...(options.headers||{}) },
+      ...options
+    });
+    const text = await res.text();
+    let data;
+    try { data = text ? JSON.parse(text) : null; } catch { data = text; }
+    if(!res.ok){
+      throw new Error(typeof data === "string" ? data : (data?.error || JSON.stringify(data)));
+    }
+    return data;
+  }
+
+  async function loadPending(){
+    showMsg("pendingMsg", "", true);
+    const body = document.getElementById("pendingBody");
+    body.innerHTML = `<tr><td colspan="8">Loading...</td></tr>`;
+
+    try{
+      // ✅ must match backend
+      const list = await api("/hod/pending");
+
+      if(!list || list.length === 0){
+        body.innerHTML = `<tr><td colspan="8">No pending requests</td></tr>`;
+        return;
+      }
+
+      body.innerHTML = list.map(r => {
+        return `
+          <tr>
+            <td>${r.id}</td>
+            <td>${r.facultyName || "-"}</td>
+            <td>${r.facultyId || "-"}</td>
+            <td>${fmtDateISO(r.requestDate)}</td>
+            <td>${fmtTime(r.requestTime)}</td>
+            <td>${r.reason || "-"}</td>
+            <td>${r.status || "-"}</td>
+            <td>
+              <div class="actions">
+                <button class="approve" onclick="approve(${r.id})">Approve</button>
+                <button class="reject" onclick="reject(${r.id})">Reject</button>
+              </div>
+            </td>
+          </tr>
+        `;
+      }).join("");
+
+    }catch(e){
+      body.innerHTML = `<tr><td colspan="8">Error loading pending</td></tr>`;
+      showMsg("pendingMsg", "Pending load failed: " + e.message, false);
+    }
+  }
+
+ async function approve(id){
+  try{
+    await api(`/hod/approve?requestId=${id}`, { method:"POST" });
+    showMsg("pendingMsg", `Approved request #${id}`, true);
+    loadPending();
+  }catch(e){
+    showMsg("pendingMsg", "Approve failed: " + e.message, false);
+  }
+}
+
+async function reject(id){
+  try{
+    await api(`/hod/reject?requestId=${id}`, { method:"POST" });
+    showMsg("pendingMsg", `Rejected request #${id}`, true);
+    loadPending();
+  }catch(e){
+    showMsg("pendingMsg", "Reject failed: " + e.message, false);
+  }
+}
+ 
+
+  async function loadApproved(){
+    const date = document.getElementById("filterDate").value;
+    if(!date){ showMsg("listMsg", "Please select a date first.", false); return; }
+
+    const body = document.getElementById("approvedBody");
+    body.innerHTML = `<tr><td colspan="7">Loading...</td></tr>`;
+    showMsg("listMsg", "", true);
+
+    try{
+      const list = await api(`/hod/approved?date=${date}`);
+      if(!list || list.length === 0){
+        body.innerHTML = `<tr><td colspan="7">No approved requests for ${fmtDateISO(date)}</td></tr>`;
+        return;
+      }
+
+      body.innerHTML = list.map(r => {
+        const d = fmtDateTime(r.decisionDateTime);
+        return `
+          <tr>
+            <td>${r.id}</td>
+            <td>${r.facultyName || "-"}</td>
+            <td>${r.facultyId || "-"}</td>
+            <td>${fmtDateISO(r.requestDate)}</td>
+            <td>${fmtTime(r.requestTime)}</td>
+            <td>${d.date}</td>
+            <td>${d.time}</td>
+          </tr>
+        `;
+      }).join("");
+
+      showMsg("listMsg", `Approved list loaded for ${fmtDateISO(date)}`, true);
+    }catch(e){
+      body.innerHTML = `<tr><td colspan="7">Error</td></tr>`;
+      showMsg("listMsg", "Approved list failed: " + e.message, false);
+    }
+  }
+
+  async function loadRejected(){
+    const date = document.getElementById("filterDate").value;
+    if(!date){ showMsg("listMsg", "Please select a date first.", false); return; }
+
+    const body = document.getElementById("rejectedBody");
+    body.innerHTML = `<tr><td colspan="7">Loading...</td></tr>`;
+    showMsg("listMsg", "", true);
+
+    try{
+      const list = await api(`/hod/rejected?date=${date}`);
+      if(!list || list.length === 0){
+        body.innerHTML = `<tr><td colspan="7">No rejected requests for ${fmtDateISO(date)}</td></tr>`;
+        return;
+      }
+
+      body.innerHTML = list.map(r => {
+        const d = fmtDateTime(r.decisionDateTime);
+        return `
+          <tr>
+            <td>${r.id}</td>
+            <td>${r.facultyName || "-"}</td>
+            <td>${r.facultyId || "-"}</td>
+            <td>${fmtDateISO(r.requestDate)}</td>
+            <td>${fmtTime(r.requestTime)}</td>
+            <td>${d.date}</td>
+            <td>${d.time}</td>
+          </tr>
+        `;
+      }).join("");
+
+      showMsg("listMsg", `Rejected list loaded for ${fmtDateISO(date)}`, true);
+    }catch(e){
+      body.innerHTML = `<tr><td colspan="7">Error</td></tr>`;
+      showMsg("listMsg", "Rejected list failed: " + e.message, false);
+    }
+  }
+
+  async function logout(){
+    try{
+      await fetch("/logout", { method:"POST", credentials:"include" });
+    }catch(e){}
+    location.href="/index.html";
+  }
+
+  // Auto load on open
+  loadPending();
+</script>
+</body>
+</html>

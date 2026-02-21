@@ -1,0 +1,113 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Gate Verification</title>
+  <style>
+    body{margin:0;font-family:system-ui,-apple-system,Segoe UI,Roboto,Arial;background:#f3f4f6;min-height:100vh;display:flex;align-items:center;justify-content:center;padding:24px}
+    .card{width:min(720px,100%);background:#fff;border:1px solid #e5e7eb;border-radius:18px;box-shadow:0 20px 60px rgba(0,0,0,.12);padding:22px}
+    h1{margin:0 0 12px;font-size:34px}
+    .sub{color:#6b7280;margin:0 0 18px}
+    label{display:block;margin-top:12px;font-weight:700;color:#111827}
+    input{width:100%;padding:12px;border:1px solid #d1d5db;border-radius:12px;margin-top:6px;font-size:16px}
+    button{width:100%;padding:14px;border:0;border-radius:12px;background:#2563eb;color:#fff;font-weight:800;font-size:16px;margin-top:16px;cursor:pointer}
+    button:disabled{opacity:.6;cursor:not-allowed}
+    .alert{margin-top:14px;padding:12px;border-radius:12px;border:1px solid #e5e7eb;display:none}
+    .ok{background:#ecfdf5;border-color:#86efac;color:#065f46}
+    .error{background:#fef2f2;border-color:#fecaca;color:#7f1d1d}
+    .row{display:flex;gap:10px;margin-top:14px}
+    .row a{color:#2563eb;text-decoration:none;font-weight:700}
+  </style>
+</head>
+<body>
+
+  <div class="card">
+    <h1>Gate Verification</h1>
+    <p class="sub">Enter the request ID and OTP to allow exit.</p>
+
+    <label for="requestId">Request ID</label>
+    <input id="requestId" placeholder="Eg: 43" />
+
+    <label for="otp">OTP (5 digits)</label>
+    <input id="otp" placeholder="Eg: 71695" maxlength="5" />
+
+    <button id="verifyBtn" type="button">Verify</button>
+
+    <div id="msg" class="alert"></div>
+
+    <div class="row">
+      <a href="/index.html">Home</a>
+      <a href="/logout" onclick="event.preventDefault(); doLogout();">Logout</a>
+    </div>
+  </div>
+
+<script>
+  // ✅ If anything fails, show it instead of blank page
+  window.addEventListener("error", (e) => {
+    const m = document.getElementById("msg");
+    if (m) {
+      m.className = "alert error";
+      m.style.display = "block";
+      m.textContent = "Page error: " + (e.message || "Unknown error");
+    }
+  });
+
+  const btn = document.getElementById("verifyBtn");
+  const msg = document.getElementById("msg");
+
+  function showMessage(ok, text){
+    msg.className = "alert " + (ok ? "ok" : "error");
+    msg.style.display = "block";
+    msg.textContent = text;
+  }
+
+  async function doLogout(){
+    try{
+      await fetch("/logout", { method:"POST", credentials:"include" });
+    }catch(e){}
+    location.href="/login.html";
+  }
+
+  btn.addEventListener("click", async () => {
+    const requestId = document.getElementById("requestId").value.trim();
+    const otp = document.getElementById("otp").value.trim();
+
+    if(!requestId || !otp){
+      showMessage(false, "Please enter both Request ID and OTP.");
+      return;
+    }
+    if(!/^\d{5}$/.test(otp)){
+      showMessage(false, "OTP must be exactly 5 digits.");
+      return;
+    }
+
+    btn.disabled = true;
+    btn.textContent = "Verifying...";
+
+    try{
+      const res = await fetch("/gate/verify", {
+        method: "POST",
+        credentials: "include",
+        headers: { "Content-Type":"application/json" },
+        body: JSON.stringify({ requestId, otp })
+      });
+
+      const data = await res.json().catch(() => null);
+
+      if(res.ok && data && data.ok){
+        showMessage(true, data.message || "Verified ✅ Exit allowed");
+      } else {
+        showMessage(false, (data && data.message) ? data.message : ("Error " + res.status));
+      }
+    } catch(e){
+      showMessage(false, "Server error: " + e.message);
+    } finally{
+      btn.disabled = false;
+      btn.textContent = "Verify";
+    }
+  });
+</script>
+
+</body>
+</html>

@@ -1,0 +1,51 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Login</title>
+  <meta charset="utf-8" />
+  <style>
+    body{margin:0;font-family:Arial;background:linear-gradient(135deg,#111827,#2563eb);min-height:100vh;display:flex;align-items:center;justify-content:center}
+    .card{background:white;width:380px;padding:22px;border-radius:18px;box-shadow:0 10px 30px rgba(0,0,0,.25)}
+    h2{margin:0 0 10px}
+    .sub{color:#6b7280;margin-bottom:18px}
+    label{font-size:14px;color:#374151}
+    input{width:100%;padding:12px;border:1px solid #e5e7eb;border-radius:12px;margin-top:6px;margin-bottom:12px;font-size:14px}
+    button{width:100%;padding:12px;border:0;border-radius:12px;background:#111827;color:white;font-size:15px;cursor:pointer}
+    .row{display:flex;justify-content:space-between;margin-top:12px;font-size:14px}
+    a{text-decoration:none;color:#2563eb}
+    .msg{display:none;padding:10px 12px;border-radius:12px;margin-bottom:12px;font-size:14px}
+    .err{background:#fee2e2;color:#991b1b;border:1px solid #fecaca}
+    .ok{background:#dcfce7;color:#166534;border:1px solid #bbf7d0}
+  </style>
+</head>
+<body>
+<div class="card">
+  <h2>Login</h2>
+  <div class="sub">Use your username & password</div>
+
+  <div id="errorBox" class="msg err">Invalid username or password.</div>
+  <div id="logoutBox" class="msg ok">Logged out successfully.</div>
+
+  <form method="post" action="/login">
+    <label>Username</label>
+    <input name="username" required>
+
+    <label>Password</label>
+    <input name="password" type="password" required>
+
+    <button type="submit">Login</button>
+  </form>
+
+  <div class="row">
+    <a href="/register.html">Create account</a>
+    <a href="/index.html">Home</a>
+  </div>
+</div>
+
+<script>
+  const params = new URLSearchParams(window.location.search);
+  if (params.get("error") === "true") document.getElementById("errorBox").style.display = "block";
+  if (params.get("logout") === "true") document.getElementById("logoutBox").style.display = "block";
+</script>
+</body>
+</html>

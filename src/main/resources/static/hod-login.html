@@ -1,0 +1,39 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>HOD Login</title>
+  <meta charset="utf-8" />
+  <style>
+    body{margin:0;font-family:Arial;background:linear-gradient(135deg,#111827,#10b981);min-height:100vh;display:flex;align-items:center;justify-content:center}
+    .card{background:white;width:380px;padding:22px;border-radius:18px;box-shadow:0 10px 30px rgba(0,0,0,.25)}
+    h2{margin:0 0 10px}
+    .sub{color:#6b7280;margin-bottom:18px}
+    label{font-size:14px;color:#374151}
+    input{width:100%;padding:12px;border:1px solid #e5e7eb;border-radius:12px;margin-top:6px;margin-bottom:12px;font-size:14px}
+    button{width:100%;padding:12px;border:0;border-radius:12px;background:#111827;color:white;font-size:15px;cursor:pointer}
+    .row{display:flex;justify-content:space-between;margin-top:12px;font-size:14px}
+    a{text-decoration:none;color:#2563eb}
+  </style>
+</head>
+<body>
+<div class="card">
+  <h2>HOD Login</h2>
+  <div class="sub">Sign in to HOD Portal</div>
+
+  <form method="post" action="/login">
+    <label>Username</label>
+    <input name="username" required>
+
+    <label>Password</label>
+    <input name="password" type="password" required>
+
+    <button type="submit">Login</button>
+  </form>
+
+  <div class="row">
+    <a href="/index.html">Home</a>
+    <a href="/login.html">Common Login</a>
+  </div>
+</div>
+</body>
+</html>

@@ -1,0 +1,181 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8">
+  <title>Faculty Portal</title>
+
+  <style>
+    body { font-family: Arial; background:#f2f2f2; margin:0; }
+    header { background:#000; color:#fff; padding:16px; }
+    header h1 { margin:0; font-size:28px; font-style:italic; font-weight:bold; }
+    .wrap { width:92%; margin:18px auto; }
+    .card { background:#fff; border-radius:12px; padding:16px; margin-bottom:16px; }
+    label { display:block; margin-top:10px; font-weight:bold; }
+    input { width:100%; padding:10px; margin-top:6px; border:1px solid #ccc; border-radius:8px; }
+    button { margin-top:12px; width:100%; padding:10px; background:#000; color:#fff; border:none; border-radius:8px; cursor:pointer; }
+    button:hover { opacity:0.9; }
+    table { width:100%; border-collapse:collapse; margin-top:14px; }
+    th, td { border:1px solid #ddd; padding:8px; text-align:center; }
+    th { background:#eee; }
+    .msg { margin-top:10px; padding:10px; border-radius:8px; display:none; }
+    .ok { background:#e8ffe8; border:1px solid #77cc77; }
+    .bad { background:#ffe8e8; border:1px solid #cc7777; }
+  </style>
+</head>
+
+<body>
+<header>
+  <h1>Early Move Out</h1>
+  <div>Faculty Portal</div>
+</header>
+
+<div class="wrap">
+
+  <div class="card">
+    <h2>Create Request</h2>
+
+    <label>Faculty Name</label>
+    <input id="facultyName" placeholder="Eg: Kanna">
+
+    <label>Faculty ID</label>
+    <input id="facultyId" placeholder="Eg: FAC101">
+
+    <label>Reason</label>
+    <input id="reason" placeholder="Eg: Personal work">
+
+    <label>Date</label>
+    <input id="reqDate" type="date">
+
+    <label>Time</label>
+    <input id="reqTime" type="time">
+
+    <button onclick="submitRequest()">Submit Request</button>
+
+    <div id="message" class="msg"></div>
+  </div>
+
+  <div class="card">
+    <h2>My Requests</h2>
+    <button onclick="loadRequests()">Refresh Table</button>
+
+    <table>
+      <thead>
+      <tr>
+        <th>ID</th>
+        <th>Reason</th>
+        <th>Date</th>
+        <th>Time</th>
+        <th>Status</th>
+        <th>OTP</th>
+      </tr>
+      </thead>
+      <tbody id="tableBody"></tbody>
+    </table>
+  </div>
+
+</div>
+
+<script>
+const BASE = "http://localhost:8080";
+
+function showMsg(text, ok=true){
+  const box = document.getElementById("message");
+  box.style.display = "block";
+  box.className = "msg " + (ok ? "ok" : "bad");
+  box.innerText = text;
+}
+
+function formatDate(d){
+  if(!d) return "-";
+  const p = d.split("-");
+  if(p.length !== 3) return d;
+  return p[2] + "-" + p[1] + "-" + p[0]; // dd-mm-yyyy
+}
+
+function formatTime(t){
+  if(!t) return "-";
+  return t.split(".")[0]; // remove nano part if any
+}
+
+async function submitRequest(){
+  try {
+    const facultyName = document.getElementById("facultyName").value.trim();
+    const facultyId = document.getElementById("facultyId").value.trim();
+    const reason = document.getElementById("reason").value.trim();
+    const requestDate = document.getElementById("reqDate").value;
+    const requestTime = document.getElementById("reqTime").value;
+
+    if(!facultyName || !facultyId || !reason || !requestDate || !requestTime){
+      showMsg("Please fill ALL fields (Name, ID, Reason, Date, Time).", false);
+      return;
+    }
+
+    // ✅ Must match backend entity field names
+    const data = { facultyName, facultyId, reason, requestDate, requestTime };
+
+    const res = await fetch(BASE + "/faculty/request", {
+      method: "POST",
+      credentials: "include",                 // ✅ important
+      headers: {"Content-Type":"application/json"},
+      body: JSON.stringify(data)
+    });
+
+    if(!res.ok){
+      const t = await res.text();
+      showMsg("Submit failed: " + res.status + " " + t, false);
+      return;
+    }
+
+    showMsg("Request submitted successfully ✅", true);
+    await loadRequests();
+
+  } catch (e){
+    showMsg("Submit error: " + e.message, false);
+  }
+}
+
+async function loadRequests(){
+  try{
+    // ✅ FIX 1: correct endpoint
+    const res = await fetch(BASE + "/faculty/my-requests", {
+      credentials: "include"                  // ✅ important
+    });
+
+    if(!res.ok){
+      const t = await res.text();
+      showMsg("Load failed: " + res.status + " " + t, false);
+      return;
+    }
+
+    const list = await res.json();
+    const body = document.getElementById("tableBody");
+    body.innerHTML = "";
+
+    if(!list || list.length === 0){
+      body.innerHTML = `<tr><td colspan="6">No requests found</td></tr>`;
+      return;
+    }
+
+    list.forEach(r => {
+      body.innerHTML += `
+        <tr>
+          <td>${r.id ?? "-"}</td>
+          <td>${r.reason ?? "-"}</td>
+          <td>${formatDate(r.requestDate)}</td>
+          <td>${formatTime(r.requestTime)}</td>
+          <td>${r.status ?? "-"}</td>
+          <td>${r.otp ?? "-"}</td>  <!-- ✅ FIX 2: otp field -->
+        </tr>`;
+    });
+
+  } catch(e){
+    showMsg("Load error: " + e.message, false);
+  }
+}
+
+// auto load when page opens
+loadRequests();
+</script>
+
+</body>
+</html>
